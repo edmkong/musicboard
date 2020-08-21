@@ -56,13 +56,14 @@ class SearchBar extends Component{
     );
   }
 }
+// playlist with all songs, display current song?
 class Playlist extends Component{
   render() {
     return (
       <div>
         <img/>
-        <h3>Playlist Name</h3>
-        <ul><li>Song 1</li><li>Song 2</li><li>Song3</li></ul>
+        <h3>Playlist</h3>
+
       </div>
     );
   }
@@ -72,7 +73,30 @@ class App extends Component{
     super();
     this.state = {serverData: {}}
   }
+
+  getParams (url) {
+    var params = {};
+    var paramString = url.split('#')[1]
+    var queryParams = paramString.split('&')
+
+    for (var i = 0; i < queryParams.length; i++) {
+      var queryParam = queryParams[i]
+      var keyPair = queryParam.split('=');
+      var key = keyPair[0]
+      var value = keyPair[1]
+      params[key] = value
+    }
+    return params;
+  };
+
   componentDidMount() {
+    var queryString = window.location.href
+    var queryParams = this.getParams(queryString);
+    localStorage.clear()
+    for (var key in queryParams) {
+      localStorage.setItem(key, queryParams[key])
+    }
+    
     setTimeout(() => {
       this.setState({serverData: fakeServerData});
     }, 1000);
@@ -85,14 +109,12 @@ class App extends Component{
           <h1>
             {this.state.serverData.user.name}'s Musicboard
           </h1>
-          <SongCount songs={this.state.serverData.user &&
-            this.state.serverData.user.songs}/>
-          <HourCounter songs={this.state.serverData.user &&
-            this.state.serverData.user.songs}/>
+          <SongCount songs={this.state.serverData.user.songs}/>
+          <HourCounter songs={this.state.serverData.user.songs}/>
           <SearchBar>
 
           </SearchBar>
-          <Playlist>
+          <Playlist playlist={this.state.serverData.user}>
 
           </Playlist>
           <a href = 'http://localhost:8888'>

@@ -92,15 +92,18 @@ app.get('/callback', function(req, res) {
         var access_token = body.access_token,
             refresh_token = body.refresh_token;
 
+
         var options = {
-          url: 'https://api.spotify.com/v1/me',
+          url: 'https://api.spotify.com/v1/search'+
+                '?q=name:queen&type=tracks',
           headers: { 'Authorization': 'Bearer ' + access_token },
           json: true
         };
 
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
-          console.log(body);
+            
+            console.log(body.albums.items);
         });
 
         // we can also pass the token to the browser to make requests from there
@@ -117,6 +120,13 @@ app.get('/callback', function(req, res) {
       }
     });
   }
+});
+            //q=name:abacab&type=album,track
+app.get('/test', function(req, res) {
+    
+    q = 'https://api.spotify.com/v1/search'+
+        '?q=name:queen&type=album,track'
+    console.log(q)
 });
 
 app.get('/refresh_token', function(req, res) {
