@@ -46,7 +46,7 @@ app.get('/login', function(req, res) {
   res.cookie(stateKey, state);
 
   // your application requests authorization
-  var scope = 'user-read-private user-read-email user-read-playback-state';
+  var scope = 'user-read-private user-read-email user-read-playback-state playlist-modify-public';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -95,19 +95,17 @@ app.get('/callback', function(req, res) {
 
         var options = {
           url: 'https://api.spotify.com/v1/search'+
-                '?q=name:queen&type=tracks',
+                '?q=name:queen&type=track',
           headers: { 'Authorization': 'Bearer ' + access_token },
           json: true
         };
-
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
-            
-            console.log(body.albums.items);
+            console.log(body);
         });
 
         // we can also pass the token to the browser to make requests from there
-        res.redirect('http://localhost:3000/#' +
+        res.redirect('http://localhost:3000/?' +
           querystring.stringify({
             access_token: access_token,
             refresh_token: refresh_token
@@ -121,11 +119,9 @@ app.get('/callback', function(req, res) {
     });
   }
 });
-            //q=name:abacab&type=album,track
-app.get('/test', function(req, res) {
+app.get('/searchSong', function(req, res) {
     
-    q = 'https://api.spotify.com/v1/search'+
-        '?q=name:queen&type=album,track'
+
     console.log(q)
 });
 

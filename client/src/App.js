@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import './App.css';
+import queryString from 'query-string';
 
 var fakeServerData = {
   user:{
     name: 'Edmond',
     songs: [
       {
-        name: 'Song 1',
+        name: 'Song 1!',
         artist: 'Artist1',
         duration: 360
       },
@@ -50,8 +51,7 @@ class SearchBar extends Component{
     return (
       <div>
         <img/>
-        <input type='text'/>
-        Search
+        <input type='text'/> Search
       </div>
     );
   }
@@ -63,6 +63,11 @@ class Playlist extends Component{
       <div>
         <img/>
         <h3>Playlist</h3>
+        <ul>
+          {this.props.songs.map(song =>
+            <li>{song.name + ": " + song.artist}</li>
+          )}
+        </ul>
 
       </div>
     );
@@ -71,35 +76,21 @@ class Playlist extends Component{
 class App extends Component{
   constructor() {
     super();
-    this.state = {serverData: {}}
+    this.state = {serverData: {},
+    searchString: ''
+    };
   }
 
-  getParams (url) {
-    var params = {};
-    var paramString = url.split('#')[1]
-    var queryParams = paramString.split('&')
-
-    for (var i = 0; i < queryParams.length; i++) {
-      var queryParam = queryParams[i]
-      var keyPair = queryParam.split('=');
-      var key = keyPair[0]
-      var value = keyPair[1]
-      params[key] = value
-    }
-    return params;
-  };
-
   componentDidMount() {
-    var queryString = window.location.href
-    var queryParams = this.getParams(queryString);
-    localStorage.clear()
-    for (var key in queryParams) {
-      localStorage.setItem(key, queryParams[key])
-    }
-    
-    setTimeout(() => {
-      this.setState({serverData: fakeServerData});
-    }, 1000);
+    var parsed = queryString.parse(window.location.search)
+    var accessToken = parsed.access_token;
+    var refreshToken = parsed.refresh_token;
+    //returns a promise
+    fetch('https://api.spotify.com/v1/me/playlists', {
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    }).then(response => response.json())
+    .then(data => console.log(data))
+    //.then(data => this.setState({serverData: {user: {name: data.display_name}}}))
   }
   render() {
     return (
@@ -114,13 +105,12 @@ class App extends Component{
           <SearchBar>
 
           </SearchBar>
-          <Playlist playlist={this.state.serverData.user}>
+          <Playlist songs={this.state.serverData.user.songs}>
 
           </Playlist>
-          <a href = 'http://localhost:8888'>
-            <button>Login With Spotify</button>
-          </a>
-        </div> : <h1>Loading...</h1>
+        </div> : <button onClick ={() => window.location =
+                'http://localhost:8888/login'}>Sign in with Spotify
+                </button>
         }
       </div>
     );
