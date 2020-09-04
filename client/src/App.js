@@ -1,41 +1,22 @@
 import React, { Component } from 'react';
 import './App.css';
 import queryString from 'query-string';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Container from 'react-bootstrap/Container'
 import VotingContainer from './Components/VotingContainer/VotingContainer'
+import NowPlaying from './Components/NowPlaying/NowPlaying'
 
 var parsed = queryString.parse(window.location.search)
 var accessToken = parsed.access_token;
 var refreshToken = parsed.refresh_token;
 
-// var fakeServerData = {
-//   user:{
-//     name: 'Edmond',
-//     songs: [
-//       {
-//         name: 'Song 1!',
-//         artist: 'Artist1',
-//         duration: 360
-//       },
-//       {
-//         name: 'Song 2',
-//         artist: 'Artist2',
-//         duration: 240
-//       },
-//       {
-//         name: 'Song 3',
-//         artist: 'Artist3',
-//         duration: 200
-//       }
-//     ]
-//   }
-// };
+
 class SearchBar extends  React.Component {
 	constructor(props) {
 		super(props);
-		this.handleInputChange = this.handleInputChange.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this)
   }
 
   handleInputChange(event) { 
@@ -60,59 +41,47 @@ class SearchBar extends  React.Component {
 	  }
 }
 
-class SongCount extends Component{
+class CurrentSong extends Component{
+  constructor(props) {
+    super(props);
+  }
   render() {
     return (
-      <div style={{width: "30%", display: 'inline-block' }}>
-        <h2>{this.props.songs.length}Text</h2>
+      <div className="currentsong">
+        {this.props.song.name ? 
+        <div>
+        {this.props.song.name} <p></p>
+        {this.props.song.artist}
+        <img src={this.props.song.image.url} height={200} />
+        </div> : "Please start web player and refresh"
+        }
       </div>
-    );
+      );
+    }
   }
-}
-class HourCounter extends Component{
-  render() {
-    var totalDuration = this.props.songs.reduce((sum, eachSong) => {
-      return sum + eachSong.duration
-    }, 0)
-    return (
-      <div style={{width: "30%", display: 'inline-block' }}>
-        <h2>Runtime:{Math.ceil(totalDuration/60)} minutes</h2>
-      </div>
-    );
-  }
-}
 
-// playlist with all songs, display current song?
-class Playlist extends Component{
-  render() {
-    return (
-      <div>
-        <img/>
-        <h3>Playlist</h3>
-        {/* <ul>
-          {this.props.songs.map(song =>
-            <li>{song.name + ": " + song.artist}</li>
-          )}
-        </ul> */}
-
-      </div>
-    );
-  }
-}
 class App extends Component{
   constructor() {
     super();
     this.state = {
-    serverData: {
-      user:{
+      userData: {
         name: '',
-        playlist: {}
-      }
-    },
-    searchTerm: '',
-    searchResults: [],
-    playlist: [],
-    votingPanel: []
+        id: '',
+        musicBoard: {
+          id: '',
+          uri: ''
+        }
+      },
+      currentSong: {
+        name: '',
+        image: '',
+        artist: '',
+        id: '',
+        duration: 0
+      },
+      searchTerm: '',
+      searchResults: [],
+      votingPanel: []
     };
     this.handleInputChange = this.handleInputChange.bind(this)
     this.handleUpvote = this.handleUpvote.bind(this)
@@ -131,11 +100,11 @@ class App extends Component{
         return {
           name: item.name,
           artist: item.artists[0].name,
-          id: item.id
+          id: item.id,
+          uri: item.uri
         }
     })
     }))
-    
   }
 
   handleInputChange(searchTerm) {
@@ -152,6 +121,14 @@ class App extends Component{
   };
 
   addSongToPanel(song) {
+    var uri = song.uri;
+    fetch('https://api.spotify.com/v1/me/player/queue?uri=' + uri, {
+    method: 'POST',
+    headers: { 
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    }
+    })
     this.setState({
       votingPanel: [...this.state.votingPanel, 
       {name: song.name, artist: song.artist, id:song.id, votes: 0}]});
@@ -164,27 +141,134 @@ class App extends Component{
     newList.sort((a, b) => (a.votes > b.votes) ? -1 : 1)
     this.setState({votingPanel: newList})
   }
+  //creates a new MusicBoard playlist and sets musicBoard id
+  createPlaylist(user_id) {
+    const body = JSON.stringify({name:'MusicBoard Playlist'})
+    fetch('https://api.spotify.com/v1/users/' + user_id + '/playlists', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: 'MusicBoard Playlist',
+      public: false,
+      collaborative: true}),
+    headers: { 
+      'Authorization': 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    }
+    })
+    .then(response => response.json())    
+    .then(data => this.setState({
+      userData: {musicBoard: {id: data.id, uri: data.uri}}
+    }))
+  }
+  //checks if a Musicboard Playlist is present
+  findMusicBoard(playlists, target) {
+    for (var i = 0, len = playlists.length; i < len; i++) {
+      console.log(playlists[i])
+      if (playlists[i].name === target) {
+        this.setState({
+          musicBoard: {...this.state.userData.musicBoard,
+          id: playlists[i].id, uri: playlists[i].uri}
+        })
+        break
+      }
+    }
+    return false
+  }
+
+  async getCurrentSong() {
+    const response = await fetch('https://api.spotify.com/v1/me/player', {
+    method: 'GET',
+    headers: {'Authorization': 'Bearer ' + accessToken}
+    })
+    const json = await response.json()
+    console.log(json.item)
+    this.setState({
+      currentSong: {
+        name: json.item.name,
+        image: json.item.album.images[0],
+        artist: json.item.artists[0].name,
+        id: json.item.id,
+        duration: json.item.duration_ms
+      }
+      })
+  }
+  
+  popVotingPanel() {
+    var newPanel = this.state.votingPanel.slice()
+    if (this.state.currentSong.id === newPanel[0].id) {
+      this.setState({votingPanel: newPanel.shift()})
+    }
+  }
+  player_play(action) {
+    fetch('https://api.spotify.com/v1/me/player/'+ action, {
+    method: 'PUT',  
+    headers: {'Authorization': 'Bearer ' + accessToken }
+    })
+    this.getCurrentSong()
+  }
+  player_skip(action) {
+    fetch('https://api.spotify.com/v1/me/player/'+ action, {
+    method: 'POST',  
+    headers: {'Authorization': 'Bearer ' + accessToken }
+    })
+    this.getCurrentSong()    
+  }
 
   componentDidMount() {
-    //returns a promise
     fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': 'Bearer ' + accessToken }
     }).then(response => response.json())
-    // .then(data => console.log(data))
-    .then(data => this.setState({serverData: {user: {name: data.display_name}}}))
+    .then(data => this.setState({
+      userData: 
+        {name: data.display_name, id: data.id}
+    }))
+    fetch('https://api.spotify.com/v1/me/player/devices', {
+      headers: {'Authorization': 'Bearer ' + accessToken }
+    }).then(response => response.json())
+
+
+    fetch('https://api.spotify.com/v1/me/player', {
+      headers: {'Authorization': 'Bearer ' + accessToken }
+    }).then(response => response.json())
+    .then(json => this.setState({
+        currentSong: {
+          name: json.item.name,
+          image: json.item.album.images[0],
+          artist: json.item.artists[0].name,
+          id: json.item.id,
+          duration: json.item.duration_ms
+        }
+    }))
+  }
+  componentDidUpdate() {
+    console.log("currentsong", this.state.currentSong)
   }
   render() {
     return (
       <div className="App">
-        {this.state.serverData.user ?
+        {this.state.userData ?
         <div>
           <Container>
             <Row>
               <h1>
-                {this.state.serverData.user.name}'s Musicboard
+                {this.state.userData.name}'s Musicboard
               </h1>
-              {/* <SongCount songs={this.state.serverData.user.songs}/>
-              <HourCounter songs={this.state.serverData.user.songs}/> */}
+            </Row>
+            <Row>
+              <h1>Now Playing:</h1>
+                <CurrentSong
+                  song = {this.state.currentSong}
+                /> 
+            </Row>
+            <Row>
+              <button onClick={() => this.player_skip('previous')
+              }>Previous</button>
+              <button onClick={() => this.player_play('play')
+              }>Play</button>
+              <button onClick={() => this.player_play('pause')
+              }>Pause</button>
+              <button onClick={() => this.player_skip('next')
+              }>Next</button>
             </Row>
             <Row>
               <Col>
@@ -193,7 +277,7 @@ class App extends Component{
                   upvote = {this.handleUpvote}
                 />
               </Col>
-              <Col>
+              <Col xs={6}>
                 <SearchBar
                   searchTerm = {this.state.searchTerm}
                   onInputChange = {this.handleInputChange}
