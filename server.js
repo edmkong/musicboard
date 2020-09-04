@@ -7,14 +7,15 @@
  * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
  */
 
+import secret from './secret.js'
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
-var client_id = '6bedb998e0ce493a980fc8b1d4fc119e'; // Your client id
-var client_secret = 'd7879597ab7c4d68ac9323413e33af14'; // Your secret
+var client_id = secret.client_id; // Your client id
+var client_secret = secret.client_secret; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
 
 /**
@@ -96,13 +97,6 @@ app.get('/callback', function(req, res) {
         var access_token = body.access_token,
             refresh_token = body.refresh_token;
 
-
-        var options = {
-          url: 'https://api.spotify.com/v1/search'+
-                '?q=name:queen&type=track',
-          headers: { 'Authorization': 'Bearer ' + access_token },
-          json: true
-        };
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
             console.log(body);
@@ -122,11 +116,6 @@ app.get('/callback', function(req, res) {
       }
     });
   }
-});
-app.get('/searchSong', function(req, res) {
-    
-
-    console.log(q)
 });
 
 app.get('/refresh_token', function(req, res) {
