@@ -6,7 +6,6 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Container from 'react-bootstrap/Container'
 import VotingContainer from './Components/VotingContainer/VotingContainer'
-import NowPlaying from './Components/NowPlaying/NowPlaying'
 
 var parsed = queryString.parse(window.location.search)
 var accessToken = parsed.access_token;
